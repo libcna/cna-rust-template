@@ -1,0 +1,7 @@
+[package]
+name = "cna-rust-template"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+cna = { git = "https://github.com/openeggbert/cna-rust", branch = "develop" }
