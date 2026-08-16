@@ -1,5 +1,8 @@
 # CNA Rust Template
 
+> **Status: In progress - ZATÍM NEFUNKČNÍ**
+
+
 A multi-platform Rust game template using the CNA framework (XNA 4.0 compatible API).
 
 ## Features
