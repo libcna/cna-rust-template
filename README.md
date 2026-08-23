@@ -22,8 +22,9 @@ The demo:
 - explicitly disposes resources, with `Drop` safely following.
 
 There is no cube, fake `supports_3d`, fabricated renderer name, fake texture, or
-XNB claim. `Texture2D::FromStream` is the raw encoded-image route; XNB
-`ContentManager` support is future work.
+XNB template claim. This canary deliberately keeps `Texture2D::FromStream` as
+the raw encoded-image route. CNA-Rust now has a separate real uncompressed XNB
+`ContentManager` pipeline, but the template does not claim to exercise it.
 
 ## Current platform evidence
 
