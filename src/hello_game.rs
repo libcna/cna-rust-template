@@ -1,4 +1,6 @@
+use std::any::{Any, TypeId};
 use std::fs::File;
+use std::sync::Arc;
 
 use cna::extensions::graphics::RendererInfoExt;
 use cna::Microsoft::Xna::Framework::Graphics::{
@@ -7,8 +9,14 @@ use cna::Microsoft::Xna::Framework::Graphics::{
 use cna::Microsoft::Xna::Framework::Input::{GamePad, Keyboard, Keys, Mouse};
 use cna::Microsoft::Xna::Framework::{Color, Game, GameContext, GameTime, PlayerIndex, Vector2};
 use cna::Result;
+use cna::{GameState, GameStateAccess};
+
+#[derive(Debug)]
+struct TemplateService;
 
 pub struct HelloGame {
+    state: Arc<GameState>,
+    service: Arc<dyn Any + Send + Sync>,
     sprite_batch: Option<SpriteBatch>,
     logo: Option<Texture2D>,
     position: Vector2,
@@ -16,8 +24,16 @@ pub struct HelloGame {
 }
 
 impl HelloGame {
-    pub const fn new() -> Self {
+    pub fn new() -> Self {
+        let state = Arc::new(GameState::new());
+        let service: Arc<dyn Any + Send + Sync> = Arc::new(TemplateService);
+        state
+            .Services()
+            .AddService(TypeId::of::<TemplateService>(), Arc::clone(&service))
+            .expect("register template game service");
         Self {
+            state,
+            service,
             sprite_batch: None,
             logo: None,
             position: Vector2::Zero,
@@ -26,8 +42,19 @@ impl HelloGame {
     }
 }
 
+impl GameStateAccess for HelloGame {
+    fn game_state(&self) -> &Arc<GameState> {
+        &self.state
+    }
+}
+
 impl Game for HelloGame {
     fn LoadContent(&mut self, game: &mut GameContext<'_>) -> Result<()> {
+        let retained_service = self
+            .Services()
+            .GetService(TypeId::of::<TemplateService>())
+            .expect("template game service");
+        assert!(Arc::ptr_eq(&self.service, &retained_service));
         let device = game.GraphicsDevice()?;
         let mut logo_file =
             File::open("Content/logo.png").map_err(|error| cna::CnaError::Native {

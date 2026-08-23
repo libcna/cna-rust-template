@@ -7,6 +7,8 @@ fake Rust frame loop.
 The demo:
 
 - initializes and shuts down a native CNA game;
+- composes the durable per-game state and verifies retained, instance-local
+  `GameServiceContainer` identity;
 - receives XNA-shaped `GameTime` update/draw callbacks;
 - obtains the native game graphics device;
 - decodes `Content/logo.png` into a real native `Texture2D`;
