@@ -34,7 +34,7 @@ the raw encoded-image route. CNA-Rust now has a separate real uncompressed XNB
 | Linux windowed/GPU | Planned |
 | Windows | Planned |
 | macOS | Planned |
-| WebAssembly | Unsupported: no CNA WASM C ABI verified |
+| WebAssembly | Blocked in the binding, not in CNA: CNA's WebAssembly C ABI exists and is current |
 | Android | Unsupported: no native CNA app integration verified |
 
 The 2026-08-30 headless test used CNA ABI 0.20.0 against an out-of-tree build
