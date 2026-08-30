@@ -101,6 +101,11 @@ def copy_crate(cna_root: Path, name: str, destination: Path) -> None:
     shutil.copytree(source / "src", destination / "src")
     if (source / "tests").is_dir():
         shutil.copytree(source / "tests", destination / "tests")
+    # A vendored crate carries its own licence and notice, exactly as the
+    # published crate does.
+    for notice in ("LICENSE", "NOTICE.md"):
+        if (source / notice).is_file():
+            shutil.copy2(source / notice, destination / notice)
 
 
 def main() -> None:
