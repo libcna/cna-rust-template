@@ -56,11 +56,12 @@ impl Game for HelloGame {
             .expect("template game service");
         assert!(Arc::ptr_eq(&self.service, &retained_service));
         let device = game.GraphicsDevice()?;
-        let mut logo_file =
-            File::open("Content/logo.png").map_err(|error| cna::CnaError::Native {
-                code: 5,
-                message: format!("cannot open Content/logo.png: {error}"),
-            })?;
+        // A failure to open a game's own file is the game's I/O failure, not a
+        // CNA one. CnaError::Io says exactly that; synthesizing a native
+        // result code here claimed a CNA failure that never happened.
+        let mut logo_file = File::open("Content/logo.png").map_err(|error| {
+            cna::CnaError::Io(format!("cannot open Content/logo.png: {error}"))
+        })?;
         let logo = Texture2D::FromStreamWithGraphicsDeviceAndStream(&device, &mut logo_file)?;
         let viewport = device.Viewport()?;
         self.position = Vector2::from_x_and_y(

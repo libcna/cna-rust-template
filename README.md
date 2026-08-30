@@ -88,8 +88,11 @@ The game itself is deliberately pure XNA. This opt-in route is the other half
 of the binding: CNA's own runtime identity and renderer registry, which XNA 4.0
 has no counterpart for. It prints the platform, the running renderer with its
 backend category and maturity, whether the renderer selection has latched, and
-every renderer identity compiled into the library. All of it comes from
-`cna::extensions`, never from `cna::Microsoft::Xna::Framework`.
+every renderer identity compiled into the library. It then round-trips a
+texture through CNA's own `.cnb` content container -- build, encode, parse,
+decode, compare -- which needs no asset on disk because the document is built
+in the process. All of it comes from `cna::extensions`, never from
+`cna::Microsoft::Xna::Framework`.
 
 ## Generate a standalone project
 

@@ -75,6 +75,45 @@ fn extensions_smoke() -> Result<()> {
             renderer.maturity()?,
         );
     }
+    content_smoke()
+}
+
+/// Round-trips a texture through CNA's own `.cnb` content container.
+///
+/// XNA has one content format and `ContentManager` reads it; this is the other
+/// one, and it needs no asset on disk because the document is built here.
+fn content_smoke() -> Result<()> {
+    use cna::extensions::content::{CnbDocument, CnbTextureData, ReadLimits};
+
+    let (width, height) = (4_u32, 2_u32);
+    let rgba: Vec<u8> = (0..width * height)
+        .flat_map(|index| {
+            let value = (index * 17) as u8;
+            [value, value.wrapping_add(1), value.wrapping_add(2), 0xFF]
+        })
+        .collect();
+
+    let document_bytes = CnbTextureData::from_rgba8(width, height, &rgba)?
+        .encode_texture2d("cna-rust-template smoke")?;
+    let document = CnbDocument::parse(&document_bytes, "smoke.cnb", ReadLimits::default())?;
+    let (major, minor) = document.container_version()?;
+    let texture = document.decode_texture2d()?;
+    let info = texture.info()?;
+    let decoded = texture.level_bytes(0, 0)?;
+
+    println!(
+        "cna-rust-template: .cnb v{major}.{minor} {} bytes, asset={:?}, texture {}x{}          round-tripped {}",
+        document_bytes.len(),
+        document.asset_type()?.name()?,
+        info.width,
+        info.height,
+        if decoded == rgba { "exactly" } else { "WITH LOSS" },
+    );
+    if decoded != rgba {
+        return Err(cna::CnaError::InvalidInput(
+            "the .cnb round trip did not return the original pixels",
+        ));
+    }
     Ok(())
 }
 
