@@ -7,6 +7,7 @@ use hello_game::HelloGame;
 enum RunMode {
     Interactive,
     Frames(u64),
+    ExtensionsSmoke,
 }
 
 fn parse_mode() -> core::result::Result<RunMode, String> {
@@ -15,6 +16,7 @@ fn parse_mode() -> core::result::Result<RunMode, String> {
     while let Some(argument) = arguments.next() {
         mode = match argument.as_str() {
             "--smoke-test" => RunMode::Frames(60),
+            "--extensions-smoke" => RunMode::ExtensionsSmoke,
             "--stability-test" => RunMode::Frames(600),
             "--frames" => {
                 let value = arguments
@@ -34,9 +36,52 @@ fn parse_mode() -> core::result::Result<RunMode, String> {
     Ok(mode)
 }
 
+/// Prints what CNA itself says about the runtime it is about to use.
+///
+/// This is the CNA-only half of the binding: none of it exists in XNA 4.0, so
+/// all of it comes from `cna::extensions` rather than from
+/// `cna::Microsoft::Xna::Framework`. It is opt-in so the game the template is
+/// actually demonstrating stays uncluttered.
+fn extensions_smoke() -> Result<()> {
+    use cna::extensions::runtime::{
+        available_renderers, current_backend_category, current_backend_maturity, current_renderer,
+        desktop_operating_system, platform, platform_name, renderer_selection_is_latched,
+    };
+
+    println!(
+        "cna-rust-template: platform={:?} ({}) os={:?}",
+        platform()?,
+        platform_name()?,
+        desktop_operating_system()?,
+    );
+    let current = current_renderer()?;
+    println!(
+        "cna-rust-template: renderer={} category={:?} maturity={:?} latched={}",
+        current.name()?,
+        current_backend_category()?,
+        current_backend_maturity()?,
+        renderer_selection_is_latched()?,
+    );
+    let available = available_renderers()?;
+    println!(
+        "cna-rust-template: {} renderer identity/identities compiled in",
+        available.len()
+    );
+    for renderer in available {
+        println!(
+            "cna-rust-template:   {:?} category={:?} maturity={:?}",
+            renderer.value(),
+            renderer.category()?,
+            renderer.maturity()?,
+        );
+    }
+    Ok(())
+}
+
 fn execute(mode: RunMode) -> Result<()> {
     match mode {
         RunMode::Interactive => run(HelloGame::new()),
+        RunMode::ExtensionsSmoke => extensions_smoke(),
         RunMode::Frames(frames) => {
             run_for_frames(HelloGame::new(), frames)?;
             println!(

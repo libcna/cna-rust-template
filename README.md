@@ -77,6 +77,20 @@ A success message means CNA initialized, content loaded, `Update` and `Draw`
 completed for the requested count, child resources were disposed, CNA shut
 down, and the process exited zero.
 
+## CNA extensions canary
+
+```bash
+CNA_NATIVE_LIBRARY=/absolute/path/to/libcna_c_api.so \
+  cargo run -- --extensions-smoke
+```
+
+The game itself is deliberately pure XNA. This opt-in route is the other half
+of the binding: CNA's own runtime identity and renderer registry, which XNA 4.0
+has no counterpart for. It prints the platform, the running renderer with its
+backend category and maturity, whether the renderer selection has latched, and
+every renderer identity compiled into the library. All of it comes from
+`cna::extensions`, never from `cna::Microsoft::Xna::Framework`.
+
 ## Generate a standalone project
 
 The checked-in canary stays directly buildable. The generator parameterizes the
