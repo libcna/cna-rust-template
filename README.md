@@ -30,16 +30,18 @@ the raw encoded-image route. CNA-Rust now has a separate real uncompressed XNB
 
 | Platform | Status |
 |---|---|
-| Linux x86-64 / CNA HEADLESS | Experimental runtime verified: 60 and 600 frames |
+| Linux x86-64 / CNA HEADLESS | Experimental runtime verified on ABI 0.20: 60 and 600 frames |
 | Linux windowed/GPU | Planned |
 | Windows | Planned |
 | macOS | Planned |
 | WebAssembly | Unsupported: no CNA WASM C ABI verified |
 | Android | Unsupported: no native CNA app integration verified |
 
-The 2026-08-23 headless test used CNA ABI 0.7 and required two temporary
-build-only corrections outside the CNA checkout because CNA C++ added NanoVG
-before the ABI 0.7 renderer table. See the CNA-Rust `NEXT.md` for exact evidence.
+The 2026-08-30 headless test used CNA ABI 0.20.0 against an out-of-tree build
+of an **unmodified** canonical CNA checkout; the build-only corrections the
+earlier ABI-0.7 run needed are no longer required, because ABI 0.20.0 is the
+version that repaired the renderer-table mismatch behind them. See the CNA-Rust
+`docs/abi-migration-evidence.md` for the exact evidence.
 
 ## Build and run
 
@@ -49,7 +51,7 @@ This development checkout intentionally uses an exact sibling path dependency:
 cna = { package = "cna-rust", path = "../cna-rust/crates/cna" }
 ```
 
-Neither crate is published yet. Supply an ABI 0.7 native library:
+Neither crate is published yet. Supply an ABI 0.20 native library:
 
 ```bash
 CNA_NATIVE_LIBRARY=/absolute/path/to/libcna_c_api.so cargo run
