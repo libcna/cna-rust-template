@@ -113,12 +113,12 @@ python3 tools/generate.py \
 ```
 
 The destination must not already exist; the generator refuses to overwrite it.
-The vendored binding remains pinned to CNA ABI 0.7 and Rust 1.74.
+The vendored binding targets CNA ABI 0.20 and Rust 1.74.
 
 ## Requirements
 
 - Rust 1.74 or newer;
-- a CNA C API library matching experimental ABI 0.7;
+- a CNA C API library matching experimental ABI 0.20;
 - the native dependencies of that CNA build; and
 - a display only when the selected CNA platform/renderer requires one.
 
