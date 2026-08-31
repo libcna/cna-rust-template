@@ -30,17 +30,18 @@ the raw encoded-image route. CNA-Rust now has a separate real uncompressed XNB
 
 | Platform | Status |
 |---|---|
-| Linux x86-64 / CNA HEADLESS | Experimental runtime verified on ABI 0.20: 60 and 600 frames |
+| Linux x86-64 / CNA HEADLESS | Experimental runtime verified on ABI 0.21: 60 and 600 frames |
 | Linux windowed/GPU | Planned |
 | Windows | Planned |
 | macOS | Planned |
-| WebAssembly | Blocked in the binding, not in CNA: CNA's WebAssembly C ABI exists and is current |
+| WebAssembly | Blocked by the toolchain: CNA's WebAssembly C ABI exists, and the binding now has a direct-linkage mode, but no wasm Rust target is installed here |
 | Android | Unsupported: no native CNA app integration verified |
 
-The 2026-08-30 headless test used CNA ABI 0.20.0 against an out-of-tree build
+The 2026-08-31 headless test used CNA ABI 0.21.0 against an out-of-tree build
 of an **unmodified** canonical CNA checkout; the build-only corrections the
 earlier ABI-0.7 run needed are no longer required, because ABI 0.20.0 is the
-version that repaired the renderer-table mismatch behind them. See the CNA-Rust
+version that repaired the renderer-table mismatch behind them, and 0.21.0 is
+purely additive on top of it. See the CNA-Rust
 `docs/abi-migration-evidence.md` for the exact evidence.
 
 ## Build and run
@@ -51,7 +52,7 @@ This development checkout intentionally uses an exact sibling path dependency:
 cna = { package = "cna-rust", path = "../cna-rust/crates/cna" }
 ```
 
-Neither crate is published yet. Supply an ABI 0.20 native library:
+Neither crate is published yet. Supply an ABI 0.21 native library:
 
 ```bash
 CNA_NATIVE_LIBRARY=/absolute/path/to/libcna_c_api.so cargo run
@@ -86,7 +87,13 @@ CNA_NATIVE_LIBRARY=/absolute/path/to/libcna_c_api.so \
 
 The game itself is deliberately pure XNA. This opt-in route is the other half
 of the binding: CNA's own runtime identity and renderer registry, which XNA 4.0
-has no counterpart for. It prints the platform, the running renderer with its
+has no counterpart for. It also builds a `GraphicsDevice` with no `Game`
+anywhere, and authors and reads back a compiled `.cnb` model -- two things a
+CNA-Rust program could not do at all before ABI 0.21, and each about one screen
+of code, which is the only reason they are here. This stays a starter template,
+not an engine demo.
+
+It prints the platform, the running renderer with its
 backend category and maturity, whether the renderer selection has latched, and
 every renderer identity compiled into the library. It then round-trips a
 texture through CNA's own `.cnb` content container -- build, encode, parse,
@@ -113,12 +120,12 @@ python3 tools/generate.py \
 ```
 
 The destination must not already exist; the generator refuses to overwrite it.
-The vendored binding targets CNA ABI 0.20 and Rust 1.74.
+The vendored binding targets CNA ABI 0.21 and Rust 1.74.
 
 ## Requirements
 
 - Rust 1.74 or newer;
-- a CNA C API library matching experimental ABI 0.20;
+- a CNA C API library matching experimental ABI 0.21;
 - the native dependencies of that CNA build; and
 - a display only when the selected CNA platform/renderer requires one.
 

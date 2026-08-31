@@ -75,7 +75,89 @@ fn extensions_smoke() -> Result<()> {
             renderer.maturity()?,
         );
     }
-    content_smoke()
+    content_smoke()?;
+    standalone_device_smoke()
+}
+
+/// Builds a `GraphicsDevice` with no `Game`, and reads a `.cnb` model.
+///
+/// Two things a CNA-Rust program could not do before this template's current
+/// generation: construct a graphics device on its own, and author and read
+/// CNA's compiled model format. Both are one screen of code, which is the only
+/// reason they are here -- this stays a starter template, not an engine demo.
+fn standalone_device_smoke() -> Result<()> {
+    use cna::extensions::content::{CnbDocument, CnbEffectKind, CnbModel, CnbModelPart, ReadLimits};
+    use cna::extensions::pbr::engine_layer_version;
+    use cna::Microsoft::Xna::Framework::Graphics::{
+        GraphicsDevice, GraphicsProfile, PresentationParameters,
+    };
+    use cna::Microsoft::Xna::Framework::GraphicsDeviceInformation;
+
+    // A device this program owns, with no game running.
+    let parameters = PresentationParameters::new();
+    parameters.SetBackBufferWidth(320);
+    parameters.SetBackBufferHeight(240);
+    let mut device = GraphicsDevice::new(
+        &GraphicsDeviceInformation::new().Adapter(),
+        GraphicsProfile::Reach,
+        &parameters,
+    )?;
+    let shape = device.PresentationParameters()?;
+    println!(
+        "cna-rust-template: standalone GraphicsDevice {}x{} profile={:?} engine layer {}",
+        shape.BackBufferWidth(),
+        shape.BackBufferHeight(),
+        device.GraphicsProfile()?,
+        engine_layer_version()?,
+    );
+
+    // A compiled model, authored and read back.
+    let model = CnbModel::new()?;
+    let identity = [
+        1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0_f32,
+    ];
+    let root = model.add_bone("root", None, &identity)?;
+    model.set_flags(false, true)?;
+    let part = model.add_part(
+        CnbModelPart {
+            vertex_stride: 12,
+            vertex_count: 3,
+            index_count: 3,
+            index_element_size: 2,
+            primitive_topology: 4,
+            primitive_count: 1,
+            effect_kind: CnbEffectKind::Basic,
+            vertex_color_enabled: false,
+            unlit: false,
+        },
+        "triangle",
+        "",
+    )?;
+    model.set_part_vertex_bytes(part, &[0_u8; 36])?;
+    model.set_part_index_bytes(part, &[0, 0, 1, 0, 2, 0])?;
+    model.add_mesh("body", Some(root), &[part as u32])?;
+
+    let bytes = model.encode("template model")?;
+    let document = CnbDocument::parse(&bytes, "template.cnb", ReadLimits::default())?;
+    let decoded = document.decode_model()?;
+    let info = decoded.info()?;
+    println!(
+        "cna-rust-template: .cnb model {} bytes, {} bone(s) {:?}, {} mesh(es), {} part(s) drawing {:?}",
+        bytes.len(),
+        info.bone_count,
+        decoded.bone_name(0)?,
+        info.mesh_count,
+        info.part_count,
+        decoded.part(part)?.effect_kind,
+    );
+    assert_eq!(
+        decoded.mesh_part_indices(0)?,
+        vec![part as u32],
+        "the mesh draws the part it was given"
+    );
+
+    device.DisposeWithNoArguments()?;
+    Ok(())
 }
 
 /// Round-trips a texture through CNA's own `.cnb` content container.
