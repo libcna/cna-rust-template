@@ -92,6 +92,21 @@ def cargo_manifest(args: argparse.Namespace, crate_name: str, binary_name: str) 
     return "\n".join(metadata)
 
 
+def build_script_name(manifest: Path) -> str | None:
+    """The build script a manifest names, if it names one.
+
+    Read from the manifest rather than assumed to be `build.rs`, because Cargo
+    lets a package point `build` anywhere and a vendored copy that missed it
+    would fail to compile with a message about a file the reader never wrote.
+    """
+    for line in manifest.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if stripped.startswith("build ") or stripped.startswith("build="):
+            _, _, value = stripped.partition("=")
+            return value.strip().strip('"')
+    return None
+
+
 def copy_crate(cna_root: Path, name: str, destination: Path) -> None:
     source = cna_root / "crates" / name
     if not (source / "Cargo.toml").is_file() or not (source / "src").is_dir():
@@ -101,6 +116,16 @@ def copy_crate(cna_root: Path, name: str, destination: Path) -> None:
     shutil.copytree(source / "src", destination / "src")
     if (source / "tests").is_dir():
         shutil.copytree(source / "tests", destination / "tests")
+    # A crate's manifest may name a build script, and a vendored copy without
+    # it does not build at all. Taking it from the manifest rather than
+    # guessing means a build script added later travels automatically -- the
+    # omission this check exists for was real: `cna-sys` grew one for
+    # direct-link support and the generated project stopped compiling.
+    build_script = build_script_name(source / "Cargo.toml")
+    if build_script is not None:
+        if not (source / build_script).is_file():
+            raise ValueError(f"{name} names a build script it does not have: {build_script}")
+        shutil.copy2(source / build_script, destination / build_script)
     # A vendored crate carries its own licence and notice, exactly as the
     # published crate does.
     for notice in ("LICENSE", "NOTICE.md"):
