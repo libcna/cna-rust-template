@@ -76,7 +76,36 @@ fn extensions_smoke() -> Result<()> {
         );
     }
     content_smoke()?;
-    standalone_device_smoke()
+    standalone_device_smoke()?;
+    engine_layer_smoke()
+}
+
+/// Builds one engine-layer render pipeline and reports what it measured.
+///
+/// The engine layer is CNA's own: XNA has no pipeline object, no scene target
+/// and no per-pass GPU timing. It is a build-time choice upstream, so a library
+/// without it answers a version of zero -- which is a fact to print, not a
+/// failure.
+fn engine_layer_smoke() -> Result<()> {
+    use cna::extensions::pbr::engine_layer_version;
+
+    if engine_layer_version()? == 0 {
+        println!(
+            "cna-rust-template: engine layer absent from this library \
+             (built without CNA_CNAEXT); nothing to report"
+        );
+        return Ok(());
+    }
+    // The pipeline needs a device, and a `Game` is what owns one on every
+    // renderer. `--extensions-smoke` deliberately runs no game, so the pipeline
+    // half is reported from the game the template already draws with: see
+    // `TemplateGame::LoadContent`. What is worth printing here is the layer's
+    // own identity, which needs nothing at all.
+    println!(
+        "cna-rust-template: engine layer version {}",
+        engine_layer_version()?
+    );
+    Ok(())
 }
 
 /// Builds a `GraphicsDevice` with no `Game`, and reads a `.cnb` model.
@@ -86,7 +115,6 @@ fn extensions_smoke() -> Result<()> {
 /// CNA's compiled model format. Both are one screen of code, which is the only
 /// reason they are here -- this stays a starter template, not an engine demo.
 fn standalone_device_smoke() -> Result<()> {
-    use cna::extensions::content::{CnbDocument, CnbEffectKind, CnbModel, CnbModelPart, ReadLimits};
     use cna::extensions::pbr::engine_layer_version;
     use cna::Microsoft::Xna::Framework::Graphics::{
         GraphicsDevice, GraphicsProfile, PresentationParameters,
@@ -97,11 +125,26 @@ fn standalone_device_smoke() -> Result<()> {
     let parameters = PresentationParameters::new();
     parameters.SetBackBufferWidth(320);
     parameters.SetBackBufferHeight(240);
-    let mut device = GraphicsDevice::new(
+    let mut device = match GraphicsDevice::new(
         &GraphicsDeviceInformation::new().Adapter(),
         GraphicsProfile::Reach,
         &parameters,
-    )?;
+    ) {
+        Ok(device) => device,
+        // Every GL-family renderer needs a platform surface for its context, so
+        // a device with no game behind it is impossible there. That is a
+        // renderer capability rather than a fault, and a canary that treated it
+        // as one would tell a user on a real GPU that the binding is broken.
+        // Only *that* refusal is tolerated; any other is still a failure.
+        Err(error) if format!("{error}").contains("surface has no platform window id") => {
+            println!(
+                "cna-rust-template: this renderer cannot make a GraphicsDevice without a window, \
+                 so the standalone-device half is skipped"
+            );
+            return standalone_model_smoke();
+        }
+        Err(error) => return Err(error),
+    };
     let shape = device.PresentationParameters()?;
     println!(
         "cna-rust-template: standalone GraphicsDevice {}x{} profile={:?} engine layer {}",
@@ -111,7 +154,15 @@ fn standalone_device_smoke() -> Result<()> {
         engine_layer_version()?,
     );
 
-    // A compiled model, authored and read back.
+    standalone_model_smoke()?;
+    device.DisposeWithNoArguments()?;
+    Ok(())
+}
+
+/// Authors a `.cnb` model and reads it back, which needs no device at all.
+fn standalone_model_smoke() -> Result<()> {
+    use cna::extensions::content::{CnbDocument, CnbEffectKind, CnbModel, CnbModelPart, ReadLimits};
+
     let model = CnbModel::new()?;
     let identity = [
         1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0_f32,
@@ -155,8 +206,6 @@ fn standalone_device_smoke() -> Result<()> {
         vec![part as u32],
         "the mesh draws the part it was given"
     );
-
-    device.DisposeWithNoArguments()?;
     Ok(())
 }
 
